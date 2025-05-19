@@ -41,6 +41,7 @@ select REPLICATE('A',CAST(RAND() * 100 AS int))
 select * from Customer
 
 --Following Command Checks the Fragmentation
+--rebuild indexes to reclaim ununsed spaces and indexed rows will be stored in contiguous pages -> improve I/O and speed up data retrieval
 SELECT * FROM sys.dm_db_index_physical_stats(DB_ID(),OBJECT_ID('Customer'),NULL,NULL,NULL);
 GO
 
@@ -51,7 +52,7 @@ go
 --You can replace the IndexName from the name column 
 --which is returned by the command Above in the following command 
 
-ALTER INDEX [PK__Customer__A4AE64B803EF1831] ON [dbo].[Customer] REBUILD with (ONLINE = ON)
+ALTER INDEX [PK__Customer__A4AE64B805C044E1] ON [dbo].[Customer] REBUILD with (ONLINE = ON)
 go
 
 drop table customer	
