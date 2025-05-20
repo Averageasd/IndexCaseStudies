@@ -44,6 +44,9 @@ select * from Production.Product where Name='Down Tube'
 select * from databaselog where DatabaseLogID=31
 
 --Wild Card is also supported
+--we have to make sure we dont put wildcard character in front. otherwise, it will scan
+--the whole index instead of using index seek.
+--when there is a lot of data, index seek will be preferred. otherwise, mssql may use index scan. 
 select * from Production.Product where Name like 'Mountain-500 Silver%'
 
 --Index Scan
