@@ -2,7 +2,8 @@
   "ExpandedNodes": [
     "",
     "\\AllScripts",
-    "\\AllScripts\\Section1-Index Concepts"
+    "\\AllScripts\\Section1-Index Concepts",
+    "\\AllScripts\\Section2-Execution Plans"
   ],
   "SelectedNode": "\\AllScripts\\Section1-Index Concepts\\2 - Index Fragmentation Practical.sql",
   "PreviewInSolutionExplorer": false

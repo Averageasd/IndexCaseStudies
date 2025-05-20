@@ -1,21 +1,46 @@
 --Heap Scan
 select * from databaselog
+
+--No Index, so it every page in the heap to find the record.
 select * from databaselog where [Schema]='HumanResources'
 
 --Clustered Index Scan
 select * from Production.Product
 
+SELECT * FROM sys.indexes WHERE OBJECT_NAME(object_id) = N'Product';
+go
+
+-- this one still uses clustered index scan since we 
+-- we dont have non-clustered index on ListPrice
+-- still inefficient since it has to scan all the 
+-- leaf pages of the index to find the product with this specific listPrice
 select * from Production.Product
 where ListPrice=1364.50
 
 --Clustered Index Seek
+--find a product with specific ID. since ID is a clustered index col
+--it will take mssql a few searches to find it
 select * from Production.Product 
 where ProductID=320
 
 --Index Seek (Key LookUp)
+--look for record in non-clustered index Name
+--then use the clustered index column associated with record
+--and search for record that contains this clustered index col
+--in the clustered index ProductID (process is called key lookup)
+--we also use nested loop: so we find rows in the non-clustered index Name
+--then find matching rows in inner table (clustered index ProductID)
+--=> we search for the record twice (1 in non-clustered index then in clustered index)
 select * from Production.Product where Name='Down Tube'
 
 --Index Seek (RowID Lookup)
+--Search for rows in Heap using row pointers
+--if we have to use RowID Lookup it means that we dont have 
+--a clustered index.
+--in this case, we search for records in leaf pages that contain
+--DatabaseLogID=31 in non-clustered index . then we will use the row
+--pointers associated with the records in the index to look for the rows in the heap. 
+--better read performance than key ID lookup if we have to deal with a lot of data.
 select * from databaselog where DatabaseLogID=31
 
 --Wild Card is also supported
