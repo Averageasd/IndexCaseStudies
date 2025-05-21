@@ -45,22 +45,40 @@ select * from databaselog where DatabaseLogID=31
 
 --Wild Card is also supported
 --we have to make sure we dont put wildcard character in front. otherwise, it will scan
---the whole index instead of using index seek.
---when there is a lot of data, index seek will be preferred. otherwise, mssql may use index scan. 
+--the whole index instead of using non-clustered index seek + key ID look up (since we have clustered index on this table).
+--when there is a lot of data, index seek will be preferred. otherwise, mssql may use index scan.
 select * from Production.Product where Name like 'Mountain-500 Silver%'
 
 --Index Scan
+--In this example, we have 38 rows as result. Mssql will have to do key ID look up
+--38 items (search for Name in non-clustered index and then do key lookup in ID clustered index)
+--instead, it will just scan the whole clustered index ID and find the records
+--with Name in the leaf pages. 
+--mssql determines that scanning 500 records in clustered index to get 38 records
+--is faster than seeking for records in non-clustered index Name then do key look up 
+--using clustered index 38 items
 select * from Production.Product where Name like 'Mountain%'
 
 --Sort
+--will perform sort on ListPrice since we dont have an index on it
 select * from [Production].[Product] order by ListPrice
 
+--will not perform sort on productsubCategoryId since
+--we have clustered index on it. and since leaf pages
+--are interconnected mssql can just read the data from
+--last page to first pgae
 select * from  [Production].[ProductSubcategory]
 order by ProductSubcategoryID desc
 
+--also no sort here needs to be performed
+--since the Name is a non-clustered index
+--will do non-clustered index scan + key ID lookup
 select * from  [Production].[ProductSubcategory]
 order by Name
 
+-- it is faster for mssql to do table scan and sort
+-- the data instead of non-clustered index scan then
+-- row ID lookup
 select * from databaselog order by DatabaseLogID
 
 --Joins
