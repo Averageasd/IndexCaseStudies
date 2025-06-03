@@ -86,45 +86,36 @@ select * from databaselog order by DatabaseLogID
 --both tables are sorted by same primary key
 --join on this primary key
 --sql server will go for merge join
+--smaller table should be on topa
 select sd.SalesOrderID,sd.OrderQty,sh.ShipMethodID,sh.CreditCardID 
 from Sales.SalesOrderDetail  sd 
 inner join Sales.SalesOrderHeader  sh 
 ON sd.SalesOrderID = sh.SalesOrderID
 
 --sh only has customer id as non-clustered index
---therefore, it is not sorted by this index
---also, it does not contain ship method ID and credit card id
---it will have to do key look up id from the actual table salesOrderHeader
+--it will have to do key look up in clustered index (salesorderheader clustered index)
+--to find complete records for each customer id
 --therefore, sql server will instead use hash match
-select c.StoreID,c.TerritoryID,sh.ShipMethodID,sh.CreditCardID  
+select sh.CustomerID, c.StoreID,c.TerritoryID,sh.ShipMethodID,sh.CreditCardID  
 from Sales.SalesOrderHeader  sh 
 inner join Sales.Customer  c
 ON sh.CustomerID = c.CustomerID
 
---as mentioned above, salesOrderHeader
---does not have customer id has clustered index key
---so it is not sorted by that.
---it will perform a non-clustered index scan 
---however, since we don't include keys where we don't have 
---clustered indexes on, it won't need to do key lookup.
---records from non-clustered index are enough and sorted
---so, sql server will choose merge join. 
-select c.StoreID,c.TerritoryID,sh.CustomerID 
+--so for every customer id we use to join
+--with customer table, there is no need to do key lookup
+--in clustered index to find extra information, so
+--sql server will use merge join here
+select c.StoreID,c.TerritoryID,sh.CustomerID
 from Sales.SalesOrderHeader  sh 
 inner join Sales.Customer  c
 ON sh.CustomerID = c.CustomerID
 
---since we only fetch 1 record, sql server might
---go for nested loop instead of merge join or hash match
---sql server will look for customerID from non-clustered index
---of sh then do key Lookup (nested loop) on innner table (actual table of sh)
---to find the record
---then it will do clustered index seek to find customer with
---below id (we have clustered index on customer id)
---then for the outer record (the sales order header)
---it will find the coresponding customer record with below
---id (a nested loop operation).
---for bigger result set, however, hash match/merge join may be used
+/**
+index seek + key look up in the sh table to find records for 
+customer. then clustered index seek to find records in customer
+table. then from outer table (customer) we find correnspoding
+records from inner table (sh) and we use nesteed loops to join because we only have 1 record.
+**/
 select c.StoreID,c.TerritoryID,sh.ShipMethodID,sh.CreditCardID  
 from Sales.SalesOrderHeader  sh 
 inner join Sales.Customer  c
@@ -132,16 +123,19 @@ ON sh.CustomerID = c.CustomerID
 where c.customerid=22222
 
 --Compute Scalar
-select  BusinessEntityID,upper(firstName +' '+ LastName)  as FullName
+select BusinessEntityID, upper(firstName +' '+ LastName)  as FullName
 from [Person].[Person]
 order by FullName
 
+--since non-clustered indexes are sorted, we don't need to perform sort operation anymore
 select  BusinessEntityID,upper(firstName +' '+ LastName)  as FullName
 from [Person].[Person]
 order by LastName,FirstName
 
 
 --aGGREGATE
+--stream aggregate consumes less memory since we don't need
+--to build hash for the column we want to aggregate by
 select StoreID,count(*) as TotalStores from Sales.Customer 
 group by StoreID
 
