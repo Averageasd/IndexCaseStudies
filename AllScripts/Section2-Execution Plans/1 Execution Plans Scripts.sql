@@ -127,8 +127,14 @@ select BusinessEntityID, upper(firstName +' '+ LastName)  as FullName
 from [Person].[Person]
 order by FullName
 
---since non-clustered indexes are sorted, we don't need to perform sort operation anymore
-select  BusinessEntityID,upper(firstName +' '+ LastName)  as FullName
+--in this case, we fetch title.
+--since title is not included in the non-clustered index
+--sql server may have to do non-clustered index scan + key look up
+--to find title. however, sql server finds that doing clustered
+--index scan directly (clustered index ordered by id) + sort
+--is cheaper. so sql server will use the clustered index instead
+--therefore, will have to use sort to order by 2 non-clustered indexes.
+select  BusinessEntityID, Title, upper(firstName +' '+ LastName)  as FullName
 from [Person].[Person]
 order by LastName,FirstName
 
@@ -136,6 +142,10 @@ order by LastName,FirstName
 --aGGREGATE
 --stream aggregate consumes less memory since we don't need
 --to build hash for the column we want to aggregate by
+--stream aggregate is used if we group by sorted column
+--since non-clustered index contains only some columns, 
+--sql server will read less pages and thus it will result
+--in faster aggregation operations.
 select StoreID,count(*) as TotalStores from Sales.Customer 
 group by StoreID
 
